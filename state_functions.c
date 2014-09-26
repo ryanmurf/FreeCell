@@ -294,3 +294,26 @@ int genMoveStates(State * state, int depth) {
 
 	return sum;
 }
+
+int sameState(State *s1, State *s2) {
+	int i,j;
+
+	for(i=0; i<CELLS; i++) {
+		if(s1->freecell[i] != s2->freecell[i]) {
+			return 0;
+		}
+		if(s1->stack[i] != s2->stack[i]) {
+			return 0;
+		}
+	}
+	for(i=0; i<COLSIZE; i++) {
+		for(j=0; j<s1->colheight[i]; j++) {
+			if(j != s2->colheight[i])
+				return 0;
+			if(s1->column[i][j] != s2->column[i][j])
+				return 0;
+		}
+	}
+	return 1;
+}
+

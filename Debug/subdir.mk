@@ -5,14 +5,20 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../freecell.c \
+../lookup3.c \
+../stateHashTable.c \
 ../state_functions.c 
 
 OBJS += \
 ./freecell.o \
+./lookup3.o \
+./stateHashTable.o \
 ./state_functions.o 
 
 C_DEPS += \
 ./freecell.d \
+./lookup3.d \
+./stateHashTable.d \
 ./state_functions.d 
 
 
