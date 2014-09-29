@@ -6,20 +6,7 @@
  */
 
 #include "freecell.h"
-#include <stdint.h>
-
-#define hashsize(n) ((uint32_t)1<<(n))
-#define hashmask(n) (hashsize(n)-1)
-
-typedef struct _list_t_ {
-	State *state;
-	struct _list_t_ *next;
-} list_t;
-
-typedef struct _hash_table_t_ {
-	int size;
-	list_t **table;
-} hash_table_t;
+#include "lookup3.h"
 
 hash_table_t *create_hash_table(int size) {
 	int i;
@@ -28,10 +15,10 @@ hash_table_t *create_hash_table(int size) {
 	if(size<1) return NULL;
 	if((new_table = malloc(sizeof(hash_table_t)))==NULL)
 		return NULL;
-	if( (new_table->table = malloc(sizeof(list_t *) * size) == NULL) )
+	if( (new_table->table = malloc(sizeof(list_t *) * hashsize(size))) == NULL )
 		return NULL;
 
-	for(i=0; i<size; i++)
+	for(i=0; i<hashsize(size); i++)
 		new_table->table[i] = NULL;
 
 	new_table->size = size;
@@ -67,11 +54,10 @@ unsigned int hash(hash_table_t *hashtable, State *s) {
 	use a bitmask.  For example, if you need only 10 bits, do
 	  h = (h & hashmask(10));
 	In which case, the hash table should have hashsize(10) elements.*/
-	return hashlittle(seq, sizeof(seq)*16, sizeof(seq)) & hashmask(15);
+	return (hashlittle(seq, 16, 8) & hashmask(hashtable->size));
 }
 
 State *lookup_state(hash_table_t *hashtable, State *s) {
-	int i;
 	list_t * list;
 	unsigned int hashval = hash(hashtable, s);
 
@@ -85,7 +71,7 @@ State *lookup_state(hash_table_t *hashtable, State *s) {
 
 int add_state(hash_table_t *hashtable, State *s) {
 	list_t *new_list;
-	list_t *current_list;
+	State *current_list;
 
 	unsigned int hashval = hash(hashtable, s);
 	if( (new_list = malloc(sizeof(list_t))) == NULL ) {

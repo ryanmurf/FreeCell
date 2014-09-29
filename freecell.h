@@ -30,7 +30,7 @@
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
-#define MAX_DEPTH 4
+#define MAX_DEPTH 5
 
 enum suits {
 	DIAMONDS, HEARTS, SPADES, CLUBS
@@ -59,6 +59,16 @@ struct State /* the state of the game at each possible move */
 	State *children; //Points to an array of children of the possible moves of this state
 };
 
+typedef struct _list_t_ {
+	State *state;
+	struct _list_t_ *next;
+} list_t;
+
+typedef struct _hash_table_t_ {
+	int size;
+	list_t **table;
+} hash_table_t;
+
 //Functions to work with state
 void dumpstate(State *x);
 int endstate(State *s);
@@ -67,7 +77,7 @@ int checkCardToColumn(const State *state, int card, int column);
 int checkFreeCell(const State *state, int card);
 int possibleMoves(const State * state);
 int genMoveStates(State * state, int depth);
-
+int sameState(State *s1, State *s2);
 
 //
 void initdeck(void);
@@ -78,7 +88,12 @@ int getindex(int num, int suit);
 void readinitconfig(void);
 void dumpcard(char index);
 
-
+//
+hash_table_t *create_hash_table(int size);
+unsigned int hash(hash_table_t *hashtable, State *s);
+State *lookup_state(hash_table_t *hashtable, State *s);
+int add_state(hash_table_t *hashtable, State *s);
+void free_table(hash_table_t *hashtable);
 
 
 #endif /* FREECELL_H_ */

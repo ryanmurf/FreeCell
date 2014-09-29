@@ -24,10 +24,13 @@ char Club[4] = {0xE2,0x99,0xA3,0};
 
 State initial; /* the starting state, loaded from stdin */
 Card deck[DECKSIZE]; /* card values in program are indices to deck[] */
+hash_table_t *table;
 
 main(int argc, char *argv[]) {
 	int i,j,moves;
 	State * array;
+
+	table = create_hash_table(15);
 
 	initdeck();
 	readinitconfig();
@@ -39,6 +42,9 @@ main(int argc, char *argv[]) {
 	initial.status = 0;
 	dumpstate(&initial);
 
+	//add_state(table, &initial);
+	//array = lookup_state(table, &initial);
+
 	printf("Size of State %u\n", (int) sizeof(State));
 	printf("Possible Moves : %i\n", possibleMoves(&initial));
 
@@ -49,6 +55,21 @@ main(int argc, char *argv[]) {
 	while(array->children != NULL) {
 		dumpstate(array);
 		array=array->children;
+	}
+
+	array=initial.children;
+	for(i=0;i<MAX_DEPTH-1;i++)
+		array=array->children;
+
+	free_table(table);
+	table = create_hash_table(15);
+	genMoveStates(array, 0);
+
+	array = array->children;
+
+	while (array->children != NULL) {
+		dumpstate(array);
+		array = array->children;
 	}
 }
 
