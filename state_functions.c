@@ -10,6 +10,44 @@
 extern Card deck[DECKSIZE];
 extern hash_table_t *table;
 
+State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
+    if (depth == MAX_DEPTH) return s;
+    States* states = generateNextStates(s);
+    States* validStates = hashCheck(states, hashTable);
+    State* bestState = s;
+    int i, bestScore = scoreState(s, simpleScore);
+    for (i = 0; i < validStates.size; i++) {
+        State* temp = subtreeSearch(validStates->states[i], hashTable, depth+1);
+        int score = scoreState(temp, simpleScore);
+        if (score > bestScore) {
+            free(bestState);
+            bestScore = score;
+            bestState = temp;
+        } else {
+            free(temp);
+        }
+    }
+    return bestState;
+}
+
+State* search() {
+    //Build global hash table
+
+    //Build start state
+
+    do {
+        //Build path-local hash table
+        State* s = subtreeSearch(start, path_hash, 0);
+        if (endState(s) == true) {
+            printPath(s);
+            exit(0);
+        }
+        
+    while (hashCheckSingle(s, global_has) == false);
+    printf("No solution found, exiting...\n");
+    exit(0);
+}
+
 void dumpstate(State *x) {
 	int i, j, flag;
 

@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define DECKSIZE 52
 #define SUITSIZE 13
@@ -30,7 +31,10 @@
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
+
 #define MAX_DEPTH 5
+#define GLOBAL_HASH_SIZE 10000
+#define PATH_HASH_SIZE 10000
 
 enum suits {
 	DIAMONDS, HEARTS, SPADES, CLUBS
@@ -56,8 +60,14 @@ struct State /* the state of the game at each possible move */
 	char stack[CELLS]; /* 4 stacks: stores top card only */
 	char colheight[NUMCOLS]; /* this and previous 2 used for hashing */
 	int status; /* 1: in history, 2: exhausted, otherwise 0 */
-	State *children; //Points to an array of children of the possible moves of this state
+    const char** path;
+    int p_size;
 };
+
+typedef struct States {
+    State* states;
+    int size;
+} States;
 
 typedef struct _list_t_ {
 	State *state;
@@ -78,6 +88,21 @@ int checkFreeCell(const State *state, int card);
 int possibleMoves(const State * state);
 int genMoveStates(State * state, int depth);
 int sameState(State *s1, State *s2);
+State* subtreeSearch(State* state, hash_table_t* hashTable, int depth);
+//Search needs input to build initial state
+State* search();
+//HashCheck should return all the states that are not contained in the 
+//hash table. It should also update the hash table with all of the new
+//states.
+States* hashCheck(States* states, hash_table_t hashTable);
+//GenerateNextStates should produce all of the states that can be reached
+//from s in one move. 
+States* generateNextStates(State* s);
+//HashCheckSingle should determine if s is contained within the hash table.
+//It should also update the hash table accordingly.
+bool hashCheckSingle(State* s, hast_table_t hashTable);
+//ScoreState should score state s using scoringFunc.
+int scoreState(State* s, int (*scoringFunc)(State* s));
 
 //
 void initdeck(void);
