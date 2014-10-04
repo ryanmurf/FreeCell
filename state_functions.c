@@ -27,25 +27,54 @@ State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
             free(temp);
         }
     }
+    free(states);
     return bestState;
 }
 
+//The input to this function will need to be the config for a start state
 State* search() {
-    //Build global hash table
-
-    //Build start state
-
+    hash_table_t* global_hash = create_hash_table(PATH_HASH_SIZE);
+    //Build start state -- using config
+    State* start = buildInitState();
     do {
-        //Build path-local hash table
+        hash_table_t* path_hash = create_hash_table(GLOBAL_HASH_SIZE);
         State* s = subtreeSearch(start, path_hash, 0);
         if (endState(s) == true) {
             printPath(s);
             exit(0);
         }
         
-    while (hashCheckSingle(s, global_has) == false);
+    while (hashCheckSingle(s, global_hash) == false);
     printf("No solution found, exiting...\n");
     exit(0);
+}
+
+int scoreState(State* s, int (*scoringFunction)(State*)) {
+    return scoringFunction(s);
+}
+    
+bool hashCheckSingle(State* s, hash_table_t* hashTable) {
+    if (add_state(hashTable, s) == 0) {
+        return false;
+    } else {
+        return true;
+    }    
+}
+
+States* hashCheck(States* states, hash_table_t* hashTable) {
+    int cur = 0, tail = (states->size)-1;
+    do {
+        if (lookup_state(hashTable, states->states[cur]) == NULL) {
+            cur++;
+        } else {
+            free(states[cur]);
+            states[cur] = states[tail];
+            states[tail] = NULL;
+            tail--;
+        }
+    } while (states[cur] != NULL);
+    states->size = cur+1;
+    return states;
 }
 
 void dumpstate(State *x) {

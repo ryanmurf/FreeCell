@@ -65,7 +65,7 @@ struct State /* the state of the game at each possible move */
 };
 
 typedef struct States {
-    State* states;
+    State** states;
     int size;
 } States;
 
@@ -101,8 +101,7 @@ States* generateNextStates(State* s);
 //HashCheckSingle should determine if s is contained within the hash table.
 //It should also update the hash table accordingly.
 bool hashCheckSingle(State* s, hast_table_t hashTable);
-//ScoreState should score state s using scoringFunc.
-int scoreState(State* s, int (*scoringFunc)(State* s));
+int scoreState(State* s, int (*scoringFunc)(State*));
 
 //
 void initdeck(void);
