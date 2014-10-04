@@ -28,6 +28,7 @@ State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
         }
     }
     free(states);
+    free(validStates);
     return bestState;
 }
 
@@ -62,19 +63,24 @@ bool hashCheckSingle(State* s, hash_table_t* hashTable) {
 }
 
 States* hashCheck(States* states, hash_table_t* hashTable) {
-    int cur = 0, tail = (states->size)-1;
-    do {
-        if (lookup_state(hashTable, states->states[cur]) == NULL) {
-            cur++;
-        } else {
-            free(states[cur]);
-            states[cur] = states[tail];
-            states[tail] = NULL;
-            tail--;
+    int count = 0, i;
+    for (i = 0; i < states->size; i++ ) { 
+        if (lookup_state(hashTable, states->states[i]) == NULL) {
+            count++;
         }
-    } while (states[cur] != NULL);
-    states->size = cur+1;
-    return states;
+    }
+    States* validStates = (States*) malloc(sizeof(States));
+    validStates->states = (State**) calloc(sizeof(State*), count);
+    
+    int j = 0;
+    for (i = 0; i < states->size; i++) {
+        if (add_state(hashTable, states->states[i]) == 0) {
+            (validStates->states)[j] = states->states[i];
+            j++;
+        }
+    }
+    validStates->size = j;
+    return validStates;
 }
 
 void dumpstate(State *x) {
@@ -83,7 +89,7 @@ void dumpstate(State *x) {
 	/* generate output that mimics actual game display, with freecells
 	 on the first row with stacks, then each row of the columns as
 	 far as they go */
-	printf("hash - %u\n",hash(table, x));
+
 	for (i = 0; i < 23; i++)
 		printf("=");
 	printf("\n");
@@ -142,16 +148,10 @@ int endstate(State *s) {
 }
 
 //Return 1-4 if card can move to stack. If not -1
-//always put in this order Diamonds Hearts Spades Clubs
 int checkStack(const State *state, int card) {
-	//int i;
+	int i;
 	State s = *state;
-	if(s.stack[deck[card].suit] == -1 && deck[card].num == 1)
-		return deck[card].suit+1;
-	if(deck[card].num == (deck[(int) s.stack[deck[card].suit]].num + 1))
-		return deck[card].suit+1;
-
-	/*for (i = 0; i < CELLS; i++) {
+	for (i = 0; i < CELLS; i++) {
 		if (s.stack[i] == -1 && deck[card].num == 1) //if empty and have ace
 			return i + 1;
 		else {
@@ -163,7 +163,7 @@ int checkStack(const State *state, int card) {
 				}
 			}
 		}
-	}*/
+	}
 	return 0;
 }
 
@@ -244,7 +244,7 @@ int genMoveStates(State * state, int depth) {
 	//printf("\n");
 	State s = *state;
 	int i, j, posMoves, spot, card, sum = 0;
-	int max = 0, location = -1;
+	int max = 0, location = 0;
 	posMoves = possibleMoves(&s);
 
 	if (posMoves == 0 || depth > MAX_DEPTH) {
@@ -261,7 +261,6 @@ int genMoveStates(State * state, int depth) {
 	//Use this to keep track of sates in array
 	posMoves = 0;
 
-	max = 0;
 	//Start with FreeCells
 	for (i = 0; i < CELLS; i++) {
 		if (s.freecell[i] != -1) {
@@ -273,8 +272,7 @@ int genMoveStates(State * state, int depth) {
 				//Clear the old spot;
 				temp[posMoves].freecell[i] = -1;
 				//add to its score
-				temp[posMoves].status += 30;
-				if(temp[posMoves].status > max) max = temp[posMoves].status;
+				temp[posMoves].status += 10;
 				//Move to the next possible move
 				posMoves++;
 			}
@@ -290,8 +288,7 @@ int genMoveStates(State * state, int depth) {
 					//increase counter
 					temp[posMoves].colheight[j]++;
 					//add to its score
-					temp[posMoves].status += (deck[temp[posMoves].column[j][temp[posMoves].colheight[j]-1]].num+6)-temp[posMoves].colheight[j];
-					if(temp[posMoves].status > max) max = temp[posMoves].status;
+					temp[posMoves].status += 0;
 					//Move to the next possible move
 					posMoves++;
 				}
@@ -313,7 +310,6 @@ int genMoveStates(State * state, int depth) {
 			temp[posMoves].colheight[i]--;
 			//add to its score
 			temp[posMoves].status += 0;
-			if(temp[posMoves].status > max) max = temp[posMoves].status;
 			//Move to the next possible move
 			posMoves++;
 		}
@@ -327,8 +323,7 @@ int genMoveStates(State * state, int depth) {
 			//Reduce the column height
 			temp[posMoves].colheight[i]--;
 			//add to its score
-			temp[posMoves].status += 30;
-			if(temp[posMoves].status > max) max = temp[posMoves].status;
+			temp[posMoves].status += 10;
 			//Move to the next possible move
 			posMoves++;
 		}
@@ -346,38 +341,34 @@ int genMoveStates(State * state, int depth) {
 				//Increase column height for j
 				temp[posMoves].colheight[j]++;
 				//add to its score
-				temp[posMoves].status += (deck[temp[posMoves].column[j][temp[posMoves].colheight[j]-1]].num+6)-temp[posMoves].colheight[j];
-				if(temp[posMoves].status > max) max = temp[posMoves].status;
+				temp[posMoves].status += 0;
 				//Move to the next possible move
 				posMoves++;
 			}
 		}
 	}
 
-	if(depth == 0)
-		printf("max %u\n",max);
-
-	for (i = 0; i < posMoves; i++)
-		if (add_state(table, &temp[i]) == 2)
-			temp[i].status = -1;
-
 	for (i = 0; i < posMoves; i++) {
-		if(temp[i].status > 0 || max == 0)
+		if(endstate(&temp[i]))
+			dumpstate(&temp[i]);
+		//add to hash table
+		if (add_state(table, &temp[i]) == 2) {
+			//return 0;
+			temp[i].status = 0;
+		} else {
 			temp[i].status += genMoveStates(&temp[i], depth + 1);
+		}
 	}
 
-	max = 0;
+	max = temp[0].status;
 	for (i = 0; i < posMoves; i++) {
-		if(depth == 0)
-			printf("Move %u Status %u\n",i,temp[i].status);
-		if(temp[i].status != -1)
-			sum += temp[i].status;
+		sum += temp[i].status;
 		if (temp[i].status > max) {
 			max = temp[i].status;
 			location = i;
 		}
 	}
-	if (max == 0 || location == -1 || sum == 0) {
+	if (max == 0) {
 		state->children = NULL;
 		free(temp);
 	} else {

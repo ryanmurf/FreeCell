@@ -91,15 +91,10 @@ int sameState(State *s1, State *s2);
 State* subtreeSearch(State* state, hash_table_t* hashTable, int depth);
 //Search needs input to build initial state
 State* search();
-//HashCheck should return all the states that are not contained in the 
-//hash table. It should also update the hash table with all of the new
-//states.
 States* hashCheck(States* states, hash_table_t hashTable);
 //GenerateNextStates should produce all of the states that can be reached
 //from s in one move. 
 States* generateNextStates(State* s);
-//HashCheckSingle should determine if s is contained within the hash table.
-//It should also update the hash table accordingly.
 bool hashCheckSingle(State* s, hast_table_t hashTable);
 int scoreState(State* s, int (*scoringFunc)(State*));
 
