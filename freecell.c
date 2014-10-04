@@ -39,38 +39,34 @@ main(int argc, char *argv[]) {
 		printf("-");
 	printf("\n");
 	printf("Created state 0\n");
+	printf("Size of State %u\n", (int) sizeof(State));
 	initial.status = 0;
 	dumpstate(&initial);
 
 	//add_state(table, &initial);
 	//array = lookup_state(table, &initial);
 
-	printf("Size of State %u\n", (int) sizeof(State));
+
 	printf("Possible Moves : %i\n", possibleMoves(&initial));
 
-	genMoveStates(&initial, 0);
 
-	array=initial.children;
 
+	array = &initial;
+for(j=0; j<4; j++) {
+	genMoveStates(array, 0);
+
+	array=array->children;
 	while(array->children != NULL) {
 		dumpstate(array);
 		array=array->children;
 	}
 
-	array=initial.children;
-	for(i=0;i<MAX_DEPTH-1;i++)
-		array=array->children;
-
 	free_table(table);
 	table = create_hash_table(15);
-	genMoveStates(array, 0);
 
-	array = array->children;
+	array->status = 0;
+}
 
-	while (array->children != NULL) {
-		dumpstate(array);
-		array = array->children;
-	}
 }
 
 void initdeck(void) {
