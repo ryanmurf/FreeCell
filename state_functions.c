@@ -240,24 +240,17 @@ int possibleMoves(const State * state) {
 	return moves;
 }
 
+States* genNextStates(State* state) {
+    int i, posMoves;
+    posMoves = possibleMoves(state);
+    States* nextStates = (States*) malloc(sizeof(States));
+    nextStates->states = (State**) calloc(sizeof(State*), posMoves);
+    for (i = 0; i < posMoves; i++) {
+        memcpy(&((nextStates->states)[i]), state, sizeof(State)); 
+    }
+}
+
 int genMoveStates(State * state, int depth) {
-	//printf("\n");
-	State s = *state;
-	int i, j, posMoves, spot, card, sum = 0;
-	int max = 0, location = 0;
-	posMoves = possibleMoves(&s);
-
-	if (posMoves == 0 || depth > MAX_DEPTH) {
-		//printf("No Moves Left.\n");
-		return 0;
-	}
-
-	State *temp = malloc(sizeof(State) * posMoves);
-	//Copy the parent state to each of the children since the difference will be small
-	for (i = 0; i < posMoves; i++) {
-		memcpy(&temp[i], state, sizeof(State));
-	}
-
 	//Use this to keep track of sates in array
 	posMoves = 0;
 

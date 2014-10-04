@@ -59,7 +59,6 @@ struct State /* the state of the game at each possible move */
 	char freecell[CELLS]; /* 4 freecells */
 	char stack[CELLS]; /* 4 stacks: stores top card only */
 	char colheight[NUMCOLS]; /* this and previous 2 used for hashing */
-	int status; /* 1: in history, 2: exhausted, otherwise 0 */
     const char** path;
     int p_size;
 };
@@ -94,7 +93,7 @@ State* search();
 States* hashCheck(States* states, hash_table_t hashTable);
 //GenerateNextStates should produce all of the states that can be reached
 //from s in one move. 
-States* generateNextStates(State* s);
+State generateNextStates(State* s);
 bool hashCheckSingle(State* s, hast_table_t hashTable);
 int scoreState(State* s, int (*scoringFunc)(State*));
 
