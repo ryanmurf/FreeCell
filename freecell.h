@@ -32,7 +32,7 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-#define MAX_DEPTH 5
+#define MAX_DEPTH 2
 //Hash table size is 2^(size)
 #define GLOBAL_HASH_SIZE 15
 #define PATH_HASH_SIZE 15
@@ -46,7 +46,7 @@ enum colors {
 
 typedef struct cardrec /* one of these per card */
 {
-	int num; /* values 1-13, for A through K */
+	int num; /* values 1-14, for A through K */
 	int suit; /* one of enum suits */
 	int color; /* one of enum colors */
 	int played; /* flag: test that all cards are present */
@@ -60,7 +60,7 @@ struct State /* the state of the game at each possible move */
 	char freecell[CELLS]; /* 4 freecells */
 	char stack[CELLS]; /* 4 stacks: stores top card only */
 	char colheight[NUMCOLS]; /* this and previous 2 used for hashing */
-	int status; /* 1: in history, 2: exhausted, otherwise 0 */
+	int score;
     const char** path;
     int p_size;
 };
