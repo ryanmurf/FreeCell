@@ -24,19 +24,13 @@ char Club[4] = {0xE2,0x99,0xA3,0};
 
 State initial; /* the starting state, loaded from stdin */
 Card deck[DECKSIZE]; /* card values in program are indices to deck[] */
-hash_table_t *table;
 
-main(int argc, char *argv[]) {
-	int i,j,moves;
-	State * array;
-
-	table = create_hash_table(15);
-
+int main(int argc, char *argv[]) {
+	int i;
+	States *k;
 	initdeck();
 	readinitconfig();
 
-	for (i = 0; i < 23; i++)
-		printf("-");
 	printf("\n");
 	printf("Created state 0\n");
 	printf("Size of State %u\n", (int) sizeof(State));
@@ -45,28 +39,15 @@ main(int argc, char *argv[]) {
 
 	//add_state(table, &initial);
 	//array = lookup_state(table, &initial);
-
-
 	printf("Possible Moves : %i\n", possibleMoves(&initial));
 
+	k = generateNextStates(&initial);
 
-
-	array = &initial;
-for(j=0; j<4; j++) {
-	genMoveStates(array, 0);
-
-	array=array->children;
-	while(array->children != NULL) {
-		dumpstate(array);
-		array=array->children;
+	for(i=0; i<k->size; i++) {
+		dumpstate(k->states[i]);
 	}
 
-	free_table(table);
-	table = create_hash_table(15);
-
-	array->status = 0;
-}
-
+	return 0;
 }
 
 void initdeck(void) {
@@ -253,12 +234,12 @@ void dumpcard(char index) {
 		exit(-1);
 	}
 	printf(ANSI_COLOR_BG_WHITE);
-	if(deck[index].color == RED) {
+	if(deck[(int) index].color == RED) {
 		printf(ANSI_COLOR_RED);
 	} else {
 		printf(ANSI_COLOR_BLACK);
 	}
-	switch (deck[index].num) {
+	switch (deck[(int) index].num) {
 	case 1:
 		printf("A");
 		break;
@@ -299,7 +280,7 @@ void dumpcard(char index) {
 		printf("K");
 		break;
 	}
-	switch (deck[index].suit) {
+	switch (deck[(int) index].suit) {
 	case DIAMONDS:
 		printf("%s",Diamond);
 		break;

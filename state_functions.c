@@ -7,8 +7,13 @@
 
 #include "freecell.h"
 
+extern State initial;
 extern Card deck[DECKSIZE];
-extern hash_table_t *table;
+
+int simpleScore(State *s) {
+
+	return 0;
+}
 
 State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
     if (depth == MAX_DEPTH) return s;
@@ -16,7 +21,7 @@ State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
     States* validStates = hashCheck(states, hashTable);
     State* bestState = s;
     int i, bestScore = scoreState(s, simpleScore);
-    for (i = 0; i < validStates.size; i++) {
+    for (i = 0; i < validStates->size; i++) {
         State* temp = subtreeSearch(validStates->states[i], hashTable, depth+1);
         int score = scoreState(temp, simpleScore);
         if (score > bestScore) {
@@ -34,18 +39,20 @@ State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
 
 //The input to this function will need to be the config for a start state
 State* search() {
-    hash_table_t* global_hash = create_hash_table(PATH_HASH_SIZE);
+    State *s;
+    hash_table_t *path_hash;
+	hash_table_t *global_hash = create_hash_table(PATH_HASH_SIZE);
     //Build start state -- using config
-    State* start = buildInitState();
+    State* start = &initial;
     do {
-        hash_table_t* path_hash = create_hash_table(GLOBAL_HASH_SIZE);
-        State* s = subtreeSearch(start, path_hash, 0);
-        if (endState(s) == true) {
-            printPath(s);
+        path_hash = create_hash_table(GLOBAL_HASH_SIZE);
+        s = subtreeSearch(start, path_hash, 0);
+        if (endstate(s) == true) {
+            //printPath(s);
             exit(0);
         }
-        
-    while (hashCheckSingle(s, global_hash) == false);
+        free_table(path_hash);
+    } while (hashCheckSingle(s, global_hash) == false);
     printf("No solution found, exiting...\n");
     exit(0);
 }
@@ -240,55 +247,54 @@ int possibleMoves(const State * state) {
 	return moves;
 }
 
-int genMoveStates(State * state, int depth) {
-	//printf("\n");
-	State s = *state;
-	int i, j, posMoves, spot, card, sum = 0;
-	int max = 0, location = 0;
-	posMoves = possibleMoves(&s);
+States* generateNextStates(State* s) {
+	int i, j, posMoves, spot, card;
+	States *states = malloc(sizeof(States));
 
-	if (posMoves == 0 || depth > MAX_DEPTH) {
-		//printf("No Moves Left.\n");
-		return 0;
+	states->size = possibleMoves(s);
+
+	if (states->size == 0) {
+		states->states = NULL;
+		return states;
 	}
 
-	State *temp = malloc(sizeof(State) * posMoves);
+	states->states = (State**) malloc(sizeof(State*) * states->size);
+	for(i=0; i<states->size; i++) {
+		(states->states)[i] = malloc(sizeof(State));
+	}
 	//Copy the parent state to each of the children since the difference will be small
-	for (i = 0; i < posMoves; i++) {
-		memcpy(&temp[i], state, sizeof(State));
+	for (i = 0; i < states->size; i++) {
+		memcpy((states->states)[i], s, sizeof(State));
 	}
 
-	//Use this to keep track of sates in array
 	posMoves = 0;
-
 	//Start with FreeCells
 	for (i = 0; i < CELLS; i++) {
-		if (s.freecell[i] != -1) {
+		if (s->freecell[i] != -1) {
 			//Check to see if we can move to Stack
-			spot = checkStack(state, s.freecell[i]);
+			spot = checkStack(s, s->freecell[i]);
 			if (spot) {
 				//Move the card
-				temp[posMoves].stack[spot - 1] = temp[posMoves].freecell[i];
+				(states->states)[posMoves]->stack[spot - 1] = (states->states)[posMoves]->freecell[i];
 				//Clear the old spot;
-				temp[posMoves].freecell[i] = -1;
+				(states->states)[posMoves]->freecell[i] = -1;
 				//add to its score
-				temp[posMoves].status += 10;
+				//(states->states)[posMoves]->status += 10;
 				//Move to the next possible move
 				posMoves++;
 			}
 			//Check 8 columns
 			for (j = 0; j < NUMCOLS; ++j) {
-				spot = checkCardToColumn(state, s.freecell[i], j);
+				spot = checkCardToColumn(s, s->freecell[i], j);
 				if (spot) {
 					//Move the card
-					temp[posMoves].column[j][(int) temp[posMoves].colheight[j]] =
-							temp[posMoves].freecell[i];
+					(states->states)[posMoves]->column[j][(int) (states->states)[posMoves]->colheight[j]] = (states->states)[posMoves]->freecell[i];
 					//Clear the old spot;
-					temp[posMoves].freecell[i] = -1;
+					(states->states)[posMoves]->freecell[i] = -1;
 					//increase counter
-					temp[posMoves].colheight[j]++;
+					(states->states)[posMoves]->colheight[j]++;
 					//add to its score
-					temp[posMoves].status += 0;
+					//(states->states)[posMoves]->status += 0;
 					//Move to the next possible move
 					posMoves++;
 				}
@@ -298,96 +304,62 @@ int genMoveStates(State * state, int depth) {
 
 	//Now Columns
 	for (i = 0; i < NUMCOLS; ++i) {
-		card = s.column[i][s.colheight[i] - 1];
-		spot = checkFreeCell(state, card);
+		card = s->column[i][s->colheight[i] - 1];
+		spot = checkFreeCell(s, card);
 		if (spot) {
 			//Move the card
-			temp[posMoves].freecell[spot - 1] =
-					temp[posMoves].column[i][temp[posMoves].colheight[i] - 1];
+			(states->states)[posMoves]->freecell[spot - 1] =	(states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1];
 			//Clear the old spot;
-			temp[posMoves].column[i][temp[posMoves].colheight[i] - 1] = -1;
+			(states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1] = -1;
 			//Reduce the column height
-			temp[posMoves].colheight[i]--;
+			(states->states)[posMoves]->colheight[i]--;
 			//add to its score
-			temp[posMoves].status += 0;
+			//(states->states)[posMoves]->status += 0;
 			//Move to the next possible move
 			posMoves++;
 		}
-		spot = checkStack(state, card);
+		spot = checkStack(s, card);
 		if (spot) {
 			//Move the card
-			temp[posMoves].stack[spot - 1] =
-					temp[posMoves].column[i][temp[posMoves].colheight[i] - 1];
+			(states->states)[posMoves]->stack[spot - 1] = (states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1];
 			//Clear the old spot;
-			temp[posMoves].column[i][temp[posMoves].colheight[i] - 1] = -1;
+			(states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1] = -1;
 			//Reduce the column height
-			temp[posMoves].colheight[i]--;
+			(states->states)[posMoves]->colheight[i]--;
 			//add to its score
-			temp[posMoves].status += 10;
+			//(states->states)[posMoves]->status += 10;
 			//Move to the next possible move
 			posMoves++;
 		}
 		for (j = 0; j < NUMCOLS; ++j) {
-			spot = checkCardToColumn(state, card, j);
+			spot = checkCardToColumn(s, card, j);
 			if (spot) {
 				//Move the card
-				temp[posMoves].column[j][(int) temp[posMoves].colheight[j]] =
-						temp[posMoves].column[i][(int) temp[posMoves].colheight[i]
-								- 1];
+				(states->states)[posMoves]->column[j][(int) (states->states)[posMoves]->colheight[j]] = (states->states)[posMoves]->column[i][(int) (states->states)[posMoves]->colheight[i] - 1];
 				//Clear the old spot;
-				temp[posMoves].column[i][temp[posMoves].colheight[i] - 1] = -1;
+				(states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1] = -1;
 				//Reduce the column height for i
-				temp[posMoves].colheight[i]--;
+				(states->states)[posMoves]->colheight[i]--;
 				//Increase column height for j
-				temp[posMoves].colheight[j]++;
+				(states->states)[posMoves]->colheight[j]++;
 				//add to its score
-				temp[posMoves].status += 0;
+				//(states->states)[posMoves]->status += 0;
 				//Move to the next possible move
 				posMoves++;
 			}
 		}
 	}
-
-	for (i = 0; i < posMoves; i++) {
-		if(endstate(&temp[i]))
-			dumpstate(&temp[i]);
-		//add to hash table
-		if (add_state(table, &temp[i]) == 2) {
-			//return 0;
-			temp[i].status = 0;
-		} else {
-			temp[i].status += genMoveStates(&temp[i], depth + 1);
-		}
-	}
-
-	max = temp[0].status;
-	for (i = 0; i < posMoves; i++) {
-		sum += temp[i].status;
-		if (temp[i].status > max) {
-			max = temp[i].status;
-			location = i;
-		}
-	}
-	if (max == 0) {
-		state->children = NULL;
-		free(temp);
-	} else {
-		state->children = malloc(sizeof(State));
-		memcpy(state->children, &temp[location], sizeof(State));
-		free(temp);
-	}
-
-	return sum;
+	return states;
 }
 
 int sameState(State *s1, State *s2) {
 	int i, j;
 
 	//method 1
-	if (s1 == s2)
-		return 1;
-	else
-		return 0;
+	//if (s1 == s2)
+	//	return 1;
+	//else
+	//	return 0;
 
 	//method 2
 	for (i = 0; i < CELLS; i++) {
