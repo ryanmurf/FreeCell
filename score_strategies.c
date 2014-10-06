@@ -1,5 +1,7 @@
 #include "freecell.h"
 
+extern Card deck[DECKSIZE];
+
 int simpleScoreMeng(State* s)
 {
 	int stackIdx, freecellIdx;
@@ -9,16 +11,16 @@ int simpleScoreMeng(State* s)
 	
 	for(stackIdx = 0; stackIdx < CELLS; stackIdx++)
 	{
-		if(stack[stackIdx] != -1)
+		if(s->stack[stackIdx] != -1)
 		{
-			score += 10 * deck[(int) s->stack[i]].num;
-			columnCount -= deck[(int) s->stack[i]].num;
+			score += 10 * deck[(int) s->stack[stackIdx]].num;
+			columnCount -= deck[(int) s->stack[stackIdx]].num;
 		}
 	}
 	
 	for(freecellIdx = 0; freecellIdx < CELLS; freecellIdx++)
 	{
-		if(freecell[freecellIdx] != -1)
+		if(s->freecell[freecellIdx] != -1)
 		{
 			score += 5;
 			columnCount--;
@@ -32,12 +34,12 @@ int simpleScoreMeng(State* s)
 		int currentIdx = 0;
 		while(1)
 		{
-			if(deck[(int) column[colIdx][currentIdx]].num = deck[(int) column[colIdx][currentIdx+1]].num - 1)
+			if(deck[(int) s->column[colIdx][currentIdx]].num == deck[(int) s->column[colIdx][currentIdx+1]].num - 1)
 			{
 				score ++;
 			}
 			currentIdx ++;
-			if(column[colIdx][currentIdx+1] == -1)
+			if(s->column[colIdx][currentIdx+1] == -1)
 				break;
 		}
 	}

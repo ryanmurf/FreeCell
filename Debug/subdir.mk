@@ -6,18 +6,21 @@
 C_SRCS += \
 ../freecell.c \
 ../lookup3.c \
+../score_strategies.c \
 ../stateHashTable.c \
 ../state_functions.c 
 
 OBJS += \
 ./freecell.o \
 ./lookup3.o \
+./score_strategies.o \
 ./stateHashTable.o \
 ./state_functions.o 
 
 C_DEPS += \
 ./freecell.d \
 ./lookup3.d \
+./score_strategies.d \
 ./stateHashTable.d \
 ./state_functions.d 
 
