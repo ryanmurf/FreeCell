@@ -60,7 +60,7 @@ struct State /* the state of the game at each possible move */
 	char freecell[CELLS]; /* 4 freecells */
 	char stack[CELLS]; /* 4 stacks: stores top card only */
 	char colheight[NUMCOLS]; /* this and previous 2 used for hashing */
-    const char** path;
+    char** path;
     int p_size;
 };
 

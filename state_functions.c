@@ -81,7 +81,7 @@ int stackingScoreRyan(State *s) {
 State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
 	States *states, *validStates;
 	State *bestState, *temp;
-	int i=0, bestScore=0;
+	int i=0, j, bestScore=0;
 
 	int (*simpleScore)(State *);
 	simpleScore = &stackingScoreRyan;
@@ -105,9 +105,12 @@ State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
         }
     }
     for(i=0; i<validStates->size; i++) {
-    	if(validStates->states[i] != bestState)
-    		//free(validStates->states[i]->path);
+    	if(validStates->states[i] != bestState) {
+    		for(j=0; j<validStates->states[i]->p_size; j++)
+    		    free(validStates->states[i]->path[j]);
+    		free(validStates->states[i]->path);
     		free(validStates->states[i]);
+    	}
     }
     free(validStates);
     return bestState;
@@ -133,19 +136,23 @@ State* search() {
             MAX_DEPTH = 3;
         if(stackingScoreRyan(s) > 6500)
         	MAX_DEPTH = 2;
-        printf("Score: %u\n",stackingScoreRyan(s));
-        dumpstate(s);
+       // printf("Score: %u\n",stackingScoreRyan(s));
+       // dumpstate(s);
         if (endstate(s) == true) {
-            printf("%s", s->path);
+        	for(i=0; i<s->p_size; i++)
+        		printf("%s\n", s->path[i]);
+        	printf("Number of Moves: %u\n", i);
             exit(0);
         }
         free_table(path_hash);
     } while (hashCheckSingle(s, global_hash) == false);
 
+    printf("No solution found, Trying 2...\n");
+
     //2nd Try
     free_table(global_hash);
-    MAX_DEPTH = 6;
-    ACE_DEC = 30;
+    MAX_DEPTH = 4;
+    ACE_DEC = 0;
     global_hash = create_hash_table(PATH_HASH_SIZE);
     s = &initial;
 
@@ -153,21 +160,51 @@ State* search() {
 		path_hash = create_hash_table(GLOBAL_HASH_SIZE);
 		s = subtreeSearch(s, path_hash, 0);
 		if (stackingScoreRyan(s) > 5800)
-			MAX_DEPTH = 4;
-		if (stackingScoreRyan(s) > 6150)
 			MAX_DEPTH = 3;
-		if (stackingScoreRyan(s) > 6500)
+		if (stackingScoreRyan(s) > 6150)
 			MAX_DEPTH = 2;
-		printf("Score: %u\n", stackingScoreRyan(s));
-		dumpstate(s);
+		//printf("Score: %u\n", stackingScoreRyan(s));
+		//dumpstate(s);
 		if (endstate(s) == true) {
-			printf("%s", s->path);
+			for(i=0; i<s->p_size; i++)
+				printf("%s\n", s->path[i]);
+			printf("Number of Moves: %u\n", i);
 			exit(0);
 		}
 		free_table(path_hash);
 	} while (hashCheckSingle(s, global_hash) == false);
 
-    printf("No solution found, exiting...\n");
+    printf("No solution found, Trying 3...\n");
+    //3rd Try
+    free_table(global_hash);
+    MAX_DEPTH = 6;
+    ACE_DEC = 140;
+    global_hash = create_hash_table(PATH_HASH_SIZE);
+    s = &initial;
+
+    do {
+		path_hash = create_hash_table(GLOBAL_HASH_SIZE);
+		s = subtreeSearch(s, path_hash, 0);
+		if (stackingScoreRyan(s) > 4400)
+			MAX_DEPTH = 4;
+		if (stackingScoreRyan(s) > 5800)
+			MAX_DEPTH = 3;
+		if (stackingScoreRyan(s) > 6150)
+			MAX_DEPTH = 2;
+		if (stackingScoreRyan(s) > 6500)
+			MAX_DEPTH = 2;
+		//printf("Score: %u\n", stackingScoreRyan(s));
+		//dumpstate(s);
+		if (endstate(s) == true) {
+			for(i=0; i<s->p_size; i++)
+				printf("%s\n", s->path[i]);
+			printf("Number of Moves: %u\n", i);
+			exit(0);
+		}
+		free_table(path_hash);
+	} while (hashCheckSingle(s, global_hash) == false);
+
+    printf("No solution found, exit\n");
     exit(0);
 }
 
@@ -187,7 +224,7 @@ bool hashCheckSingle(State* s, hash_table_t* hashTable) {
  * Takes States checks to see if in hashTable removes them if they are
  */
 States* hashCheck(States* states, hash_table_t* hashTable) {
-    int count = 0, i;
+    int count = 0, i, j, k;
     for (i = 0; i < states->size; i++ ) { 
         if (lookup_state(hashTable, states->states[i]) == NULL && lookup_state(global_hash, states->states[i]) == NULL) {
             count++;
@@ -198,7 +235,9 @@ States* hashCheck(States* states, hash_table_t* hashTable) {
     	validStates->states = NULL;
     	validStates->size = 0;
     	for (i = 0; i < states->size; i++) {
-    		//free(states->states[i]->path);
+    		for(j=0; j<states->states[i]->p_size; j++)
+    			free(states->states[i]->path[j]);
+    		free(states->states[i]->path);
     		free(states->states[i]);
     	}
     	free(states);
@@ -207,13 +246,17 @@ States* hashCheck(States* states, hash_table_t* hashTable) {
 
     validStates->states = (State**) calloc(sizeof(State*), count);
     
-    int j = 0;
+    j = 0;
     for (i = 0; i < states->size; i++) {
         if (add_state(hashTable, states->states[i]) == 0) {
             (validStates->states)[j] = states->states[i];
+            (validStates->states)[j]->path = states->states[i]->path;
+            (validStates->states)[j]->p_size = states->states[i]->p_size;
             j++;
         } else {
-        	//free(states->states[i]->path);
+        	for(k=0; k<states->states[i]->p_size; k++)
+        		free(states->states[i]->path[k]);
+        	free(states->states[i]->path);
         	free(states->states[i]);
         }
     }
@@ -423,6 +466,21 @@ States* generateNextStates(State* s) {
 	//Copy the parent state to each of the children since the difference will be small
 	for (i = 0; i < states->size; i++) {
 		memcpy((states->states)[i], s, sizeof(State));
+		if(s->p_size == 0) {
+			(states->states)[i]->path = (char**) malloc(sizeof(char *) * 1);
+			(states->states)[i]->p_size = 1;
+			for(j=0; j<1; j++) {
+				(states->states)[i]->path[j] = (char*) malloc(sizeof(char) * 6);
+			}
+		} else if(s->p_size > 0){
+			(states->states)[i]->path = (char**) malloc(sizeof(char *) * (s->p_size+1));
+			(states->states)[i]->p_size = s->p_size+1;
+			for(j=0; j<(s->p_size+1); j++) {
+				(states->states)[i]->path[j] = (char*) malloc(sizeof(char) * 6);
+				if(j < (s->p_size))
+					strcpy((states->states)[i]->path[j], s->path[j]);
+			}
+		}
 	}
 
 	posMoves = 0;
@@ -436,10 +494,14 @@ States* generateNextStates(State* s) {
 				(states->states)[posMoves]->stack[spot - 1] = (states->states)[posMoves]->freecell[i];
 				//Clear the old spot;
 				(states->states)[posMoves]->freecell[i] = -1;
+				//Record the move
+				dumpcardPlain((states->states)[posMoves]->path[s->p_size], (states->states)[posMoves]->stack[spot - 1], "FS");
+				(states->states)[posMoves]->path[s->p_size][2] = ' ';
+				(states->states)[posMoves]->path[s->p_size][3] = 'S';
+				(states->states)[posMoves]->path[s->p_size][4] = ' ';
+				(states->states)[posMoves]->path[s->p_size][5] = '\0';
 				//oder largest to smallest
 				sortFreeCell((states->states)[posMoves]->freecell);
-				//add to its score
-				//(states->states)[posMoves]->status += 10;
 				//Move to the next possible move
 				posMoves++;
 			} else {
@@ -453,10 +515,14 @@ States* generateNextStates(State* s) {
 						(states->states)[posMoves]->freecell[i] = -1;
 						//increase counter
 						(states->states)[posMoves]->colheight[j]++;
+						//Record the move
+						dumpcardPlain((states->states)[posMoves]->path[s->p_size], (states->states)[posMoves]->column[j][(int) (states->states)[posMoves]->colheight[j]-1], "FC");
+						(states->states)[posMoves]->path[s->p_size][2] = ' ';
+						(states->states)[posMoves]->path[s->p_size][3] = 'C';
+						(states->states)[posMoves]->path[s->p_size][4] = (char)(((int)'0')+(j+1));
+						(states->states)[posMoves]->path[s->p_size][5] = '\0';
 						//oder largest to smallest
 						sortFreeCell((states->states)[posMoves]->freecell);
-						//add to its score
-						//(states->states)[posMoves]->status += 0;
 						//Move to the next possible move
 						posMoves++;
 					}
@@ -480,8 +546,12 @@ States* generateNextStates(State* s) {
 			(states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1] = -1;
 			//Reduce the column height
 			(states->states)[posMoves]->colheight[i]--;
-			//add to its score
-			//(states->states)[posMoves]->status += 10;
+			//Record the move
+			dumpcardPlain((states->states)[posMoves]->path[s->p_size], (states->states)[posMoves]->stack[spot - 1], "CS");
+			(states->states)[posMoves]->path[s->p_size][2] = ' ';
+			(states->states)[posMoves]->path[s->p_size][3] = 'S';
+			(states->states)[posMoves]->path[s->p_size][4] = ' ';
+			(states->states)[posMoves]->path[s->p_size][5] = '\0';
 			//Move to the next possible move
 			posMoves++;
 		} else {
@@ -493,10 +563,14 @@ States* generateNextStates(State* s) {
 				(states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1] = -1;
 				//Reduce the column height
 				(states->states)[posMoves]->colheight[i]--;
+				//Record the move
+				dumpcardPlain((states->states)[posMoves]->path[s->p_size], (states->states)[posMoves]->freecell[spot - 1], "CS");
+				(states->states)[posMoves]->path[s->p_size][2] = ' ';
+				(states->states)[posMoves]->path[s->p_size][3] = 'F';
+				(states->states)[posMoves]->path[s->p_size][4] = ' ';
+				(states->states)[posMoves]->path[s->p_size][5] = '\0';
 				//oder largest to smallest
 				sortFreeCell((states->states)[posMoves]->freecell);
-				//add to its score
-				//(states->states)[posMoves]->status += 0;
 				//Move to the next possible move
 				posMoves++;
 			}
@@ -512,8 +586,12 @@ States* generateNextStates(State* s) {
 					(states->states)[posMoves]->colheight[i]--;
 					//Increase column height for j
 					(states->states)[posMoves]->colheight[j]++;
-					//add to its score
-					//(states->states)[posMoves]->status += 0;
+					//Record the move
+					dumpcardPlain((states->states)[posMoves]->path[s->p_size], (states->states)[posMoves]->column[j][(int) (states->states)[posMoves]->colheight[j]-1], "FC");
+					(states->states)[posMoves]->path[s->p_size][2] = ' ';
+					(states->states)[posMoves]->path[s->p_size][3] = 'C';
+					(states->states)[posMoves]->path[s->p_size][4] = (char)(((int)'0')+(j+1));
+					(states->states)[posMoves]->path[s->p_size][5] = '\0';
 					//Move to the next possible move
 					posMoves++;
 				}
