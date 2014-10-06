@@ -32,9 +32,10 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-#define MAX_DEPTH 5
-#define GLOBAL_HASH_SIZE 10000
-#define PATH_HASH_SIZE 10000
+#define MAX_DEPTH 4
+//Hash table size is 2^(size)
+#define GLOBAL_HASH_SIZE 15
+#define PATH_HASH_SIZE 15
 
 enum suits {
 	DIAMONDS, HEARTS, SPADES, CLUBS
@@ -59,6 +60,7 @@ struct State /* the state of the game at each possible move */
 	char freecell[CELLS]; /* 4 freecells */
 	char stack[CELLS]; /* 4 stacks: stores top card only */
 	char colheight[NUMCOLS]; /* this and previous 2 used for hashing */
+	int score;
     const char** path;
     int p_size;
 };
@@ -85,16 +87,15 @@ int checkStack(const State *state, int card);
 int checkCardToColumn(const State *state, int card, int column);
 int checkFreeCell(const State *state, int card);
 int possibleMoves(const State * state);
-int genMoveStates(State * state, int depth);
 int sameState(State *s1, State *s2);
 State* subtreeSearch(State* state, hash_table_t* hashTable, int depth);
 //Search needs input to build initial state
 State* search();
-States* hashCheck(States* states, hash_table_t hashTable);
+States* hashCheck(States* states, hash_table_t *hashTable);
 //GenerateNextStates should produce all of the states that can be reached
 //from s in one move. 
-State generateNextStates(State* s);
-bool hashCheckSingle(State* s, hast_table_t hashTable);
+States* generateNextStates(State* s);
+bool hashCheckSingle(State* s, hash_table_t *hashTable);
 int scoreState(State* s, int (*scoringFunc)(State*));
 
 //

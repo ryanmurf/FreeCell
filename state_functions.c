@@ -7,44 +7,149 @@
 
 #include "freecell.h"
 
+extern State initial;
 extern Card deck[DECKSIZE];
-extern hash_table_t *table;
+
+int simpleScoreRyan(State *s) {
+	int i=0, score=0;
+	if(s == NULL) return 0;
+
+	for(i=0; i<CELLS; i++) {
+		if(s->stack[i] != -1) {
+			score += 10 * deck[(int) s->stack[i]].num;
+		}
+	}
+
+	return score;
+}
+
+int stackingScoreRyan(State *s) {
+	int i=0, j=0, score=0, colHeight;
+	int tempScore=0;
+	int foundStack = 0;
+	Card card, nextCard;
+	if(s==NULL) return 0;
+
+	//Score for foundation cards
+	for (i = 0; i < CELLS; i++) {
+		if (s->stack[i] != -1) {
+			score += 175 * deck[(int) s->stack[i]].num;
+		}
+	}
+
+	//for (i = 0; i < CELLS; i++) {
+	//	if(s->freecell[i] == -1)
+	//		score += 10;
+	//}
+
+	//
+	for(i=0; i<NUMCOLS; i++) {
+		foundStack = 0;
+		tempScore = 0;
+
+		colHeight = (int) s->colheight[i];
+		if(colHeight == 0) {
+			continue;
+		} else if(colHeight == 1) {
+			card = deck[(int) s->column[i][0]];
+			score += (card.num+5) - j;
+		} else {
+			for (j = 0; j < (colHeight - 1); j++) {
+				card = deck[(int) s->column[i][j]];
+				nextCard = deck[(int) s->column[i][j + 1]];
+				if( (card.num-1 == nextCard.num) && (card.color != nextCard.color) ) {
+					foundStack = 1;
+					tempScore += (card.num+5) - j;
+				} else {
+					foundStack = 0;
+					tempScore = 0;
+				}
+				if (((j + 1) == (colHeight - 1)) && foundStack) {
+					tempScore += (nextCard.num + 5) - j;
+					score += tempScore;
+				}
+			}
+		}
+	}
+
+	return score;
+}
 
 State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
+	States *states, *validStates;
+	State *bestState, *temp;
+	int i=0, bestScore=0;
+
+	int (*simpleScore)(State *);
+	simpleScore = &stackingScoreRyan;
+
     if (depth == MAX_DEPTH) return s;
-    States* states = generateNextStates(s);
-    States* validStates = hashCheck(states, hashTable);
-    State* bestState = s;
-    int i, bestScore = scoreState(s, simpleScore);
-    for (i = 0; i < validStates.size; i++) {
-        State* temp = subtreeSearch(validStates->states[i], hashTable, depth+1);
+    states = generateNextStates(s);
+    if(states->size == 0) return s;
+    validStates = hashCheck(states, hashTable);
+    if(validStates->size == 0) return s;
+
+    bestState = s;
+    bestScore = scoreState(s, simpleScore);
+    for (i = 0; i < validStates->size; i++) {
+        temp = subtreeSearch(validStates->states[i], hashTable, depth+1);
         int score = scoreState(temp, simpleScore);
+        //printf("%u\n",score);
         if (score > bestScore) {
-            free(bestState);
             bestScore = score;
             bestState = temp;
-        } else {
-            free(temp);
         }
     }
-    free(states);
+    for(i=0; i<validStates->size; i++) {
+    	if(validStates->states[i] != bestState)
+    		free(validStates->states[i]);
+    }
     free(validStates);
     return bestState;
 }
 
+hash_table_t *global_hash;
+
 //The input to this function will need to be the config for a start state
 State* search() {
-    hash_table_t* global_hash = create_hash_table(PATH_HASH_SIZE);
+	States *k;
+	int i=0;
+    State *s;
+    hash_table_t *path_hash;
+	global_hash = create_hash_table(PATH_HASH_SIZE);
     //Build start state -- using config
-    State* start = buildInitState();
+    s = &initial;
     do {
-        hash_table_t* path_hash = create_hash_table(GLOBAL_HASH_SIZE);
-        State* s = subtreeSearch(start, path_hash, 0);
-        if (endState(s) == true) {
-            printPath(s);
+        path_hash = create_hash_table(GLOBAL_HASH_SIZE);
+        s = subtreeSearch(s, path_hash, 0);
+        printf("Score: %u\n",stackingScoreRyan(s));
+        dumpstate(s);
+        if (endstate(s) == true) {
+            //printPath(s);
             exit(0);
+<<<<<<< HEAD
         }   
     } while (hashCheckSingle(s, global_hash) == false);
+=======
+        }
+        free_table(path_hash);
+        i++;
+    } while (hashCheckSingle(s, global_hash) == false);
+
+    printf("Score: %u\n",stackingScoreRyan(s));
+    printf("Possible Moves : %i\n", possibleMoves(s));
+    printf("\n\n\n");
+
+
+
+    k = generateNextStates(s);
+
+    for(i=0; i<k->size; i++) {
+    	dumpstate(k->states[i]);
+    	printf("Score: %u\n",stackingScoreRyan(k->states[i]));
+    }
+
+>>>>>>> c496c1fc01359ee8df2cebc3917ab94c22e61f3a
     printf("No solution found, exiting...\n");
     exit(0);
 }
@@ -60,15 +165,27 @@ bool hashCheckSingle(State* s, hash_table_t* hashTable) {
         return true;
     }    
 }
-
+/**
+ * hashCeck
+ * Takes States checks to see if in hashTable removes them if they are
+ */
 States* hashCheck(States* states, hash_table_t* hashTable) {
     int count = 0, i;
     for (i = 0; i < states->size; i++ ) { 
-        if (lookup_state(hashTable, states->states[i]) == NULL) {
+        if (lookup_state(hashTable, states->states[i]) == NULL && lookup_state(global_hash, states->states[i]) == NULL) {
             count++;
         }
     }
     States* validStates = (States*) malloc(sizeof(States));
+    if(count == 0) {
+    	validStates->states = NULL;
+    	validStates->size = 0;
+    	for (i = 0; i < states->size; i++)
+    		free(states->states[i]);
+    	free(states);
+    	return validStates;
+    }
+
     validStates->states = (State**) calloc(sizeof(State*), count);
     
     int j = 0;
@@ -76,9 +193,13 @@ States* hashCheck(States* states, hash_table_t* hashTable) {
         if (add_state(hashTable, states->states[i]) == 0) {
             (validStates->states)[j] = states->states[i];
             j++;
+        } else {
+        	free(states->states[i]);
         }
     }
     validStates->size = j;
+    free(states);
+    states = NULL;
     return validStates;
 }
 
@@ -138,8 +259,9 @@ int endstate(State *s) {
 		if (s->freecell[i] != -1)
 			return 0;
 	}
-	if ((s->stack[0] != 12) || (s->stack[1] != 25) || (s->stack[2] != 38)
-			|| (s->stack[3] != 51)) {
+	//
+	if ((s->stack[0] != 12) || (s->stack[1] != 51) || (s->stack[2] != 25)
+			|| (s->stack[3] != 38)) {
 		printf("Impossible condition in endstate\n");
 		exit(-1);
 	}
@@ -203,34 +325,37 @@ int possibleMoves(const State * state) {
 	for (i = 0; i < CELLS; i++) {
 		if (s.freecell[i] != -1) {
 			//Check to see if we can move to Stack
-			if (checkStack(state, s.freecell[i]))
+			if (checkStack(state, s.freecell[i])) {
 				moves++;
-			//Check 8 columns
-			for (j = 0; j < NUMCOLS; ++j) {
-				if (checkCardToColumn(state, s.freecell[i], j))
-					moves++;
+			} else {
+				//Check 8 columns
+				for (j = 0; j < NUMCOLS; ++j) {
+					if (checkCardToColumn(state, s.freecell[i], j))
+						moves++;
+				}
 			}
 		}
 	}
 	//Now Columns
 	for (i = 0; i < NUMCOLS; ++i) {
 		card = s.column[i][s.colheight[i] - 1];
-		//printf("Column %i Card %d Height %d- ", i, card, s.colheight[i]);
-		if (checkFreeCell(state, card)) {
-			//dumpcard(card);
-			//printf("FC ");
-			moves++;
-		}
 		if (checkStack(state, card)) {
 			//dumpcard(card);
 			//printf("ST ");
 			moves++;
-		}
-		for (j = 0; j < NUMCOLS; ++j) {
-			if (checkCardToColumn(state, card, j)) {
+		} else {
+			//printf("Column %i Card %d Height %d- ", i, card, s.colheight[i]);
+			if (checkFreeCell(state, card)) {
 				//dumpcard(card);
-				//printf("C%i ",j+1);
+				//printf("FC ");
 				moves++;
+			}
+			for (j = 0; j < NUMCOLS; ++j) {
+				if (checkCardToColumn(state, card, j)) {
+					//dumpcard(card);
+					//printf("C%i ",j+1);
+					moves++;
+				}
 			}
 		}
 		//printf("\n");
@@ -239,6 +364,7 @@ int possibleMoves(const State * state) {
 	return moves;
 }
 
+<<<<<<< HEAD
 States* genNextStates(State* state) {
     int i, posMoves;
     posMoves = possibleMoves(state);
@@ -251,125 +377,140 @@ States* genNextStates(State* state) {
 
 int genMoveStates(State * state, int depth) {
 	//Use this to keep track of sates in array
-	posMoves = 0;
+=======
+void sortFreeCell(char *freeCells) {
+	int c, d;
+	char swap;
 
+	for(c=0; c<(CELLS-1); c++) {
+		for(d=0; d<(CELLS-c-1); d++) {
+			if(freeCells[d] < freeCells[d+1]) {
+				swap = freeCells[d];
+				freeCells[d] = freeCells[d+1];
+				freeCells[d+1] = swap;
+			}
+		}
+	}
+}
+
+States* generateNextStates(State* s) {
+	int i, j, posMoves, spot, card;
+	States *states = malloc(sizeof(States));
+
+	states->size = possibleMoves(s);
+
+	if (states->size == 0) {
+		states->states = NULL;
+		states->size = 0;
+		return states;
+	}
+
+	states->states = (State**) malloc(sizeof(State*) * states->size);
+	for(i=0; i<states->size; i++) {
+		(states->states)[i] = malloc(sizeof(State));
+	}
+	//Copy the parent state to each of the children since the difference will be small
+	for (i = 0; i < states->size; i++) {
+		memcpy((states->states)[i], s, sizeof(State));
+	}
+
+>>>>>>> c496c1fc01359ee8df2cebc3917ab94c22e61f3a
+	posMoves = 0;
 	//Start with FreeCells
 	for (i = 0; i < CELLS; i++) {
-		if (s.freecell[i] != -1) {
+		if (s->freecell[i] != -1) {
 			//Check to see if we can move to Stack
-			spot = checkStack(state, s.freecell[i]);
+			spot = checkStack(s, s->freecell[i]);
 			if (spot) {
 				//Move the card
-				temp[posMoves].stack[spot - 1] = temp[posMoves].freecell[i];
+				(states->states)[posMoves]->stack[spot - 1] = (states->states)[posMoves]->freecell[i];
 				//Clear the old spot;
-				temp[posMoves].freecell[i] = -1;
+				(states->states)[posMoves]->freecell[i] = -1;
+				//oder largest to smallest
+				sortFreeCell((states->states)[posMoves]->freecell);
 				//add to its score
-				temp[posMoves].status += 10;
+				//(states->states)[posMoves]->status += 10;
 				//Move to the next possible move
 				posMoves++;
-			}
-			//Check 8 columns
-			for (j = 0; j < NUMCOLS; ++j) {
-				spot = checkCardToColumn(state, s.freecell[i], j);
-				if (spot) {
-					//Move the card
-					temp[posMoves].column[j][(int) temp[posMoves].colheight[j]] =
-							temp[posMoves].freecell[i];
-					//Clear the old spot;
-					temp[posMoves].freecell[i] = -1;
-					//increase counter
-					temp[posMoves].colheight[j]++;
-					//add to its score
-					temp[posMoves].status += 0;
-					//Move to the next possible move
-					posMoves++;
+			} else {
+				//Check 8 columns
+				for (j = 0; j < NUMCOLS; ++j) {
+					spot = checkCardToColumn(s, s->freecell[i], j);
+					if (spot) {
+						//Move the card
+						(states->states)[posMoves]->column[j][(int) (states->states)[posMoves]->colheight[j]] = (states->states)[posMoves]->freecell[i];
+						//Clear the old spot;
+						(states->states)[posMoves]->freecell[i] = -1;
+						//increase counter
+						(states->states)[posMoves]->colheight[j]++;
+						//oder largest to smallest
+						sortFreeCell((states->states)[posMoves]->freecell);
+						//add to its score
+						//(states->states)[posMoves]->status += 0;
+						//Move to the next possible move
+						posMoves++;
+					}
 				}
 			}
 		}
 	}
 
 	//Now Columns
+	//If card can move to foundation, do not generate any of it's other moves
+	//
 	for (i = 0; i < NUMCOLS; ++i) {
-		card = s.column[i][s.colheight[i] - 1];
-		spot = checkFreeCell(state, card);
+		if(s->colheight[i] == 0)
+			continue;
+		card = s->column[i][s->colheight[i] - 1];
+		spot = checkStack(s, card);
 		if (spot) {
 			//Move the card
-			temp[posMoves].freecell[spot - 1] =
-					temp[posMoves].column[i][temp[posMoves].colheight[i] - 1];
+			(states->states)[posMoves]->stack[spot - 1] = (states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1];
 			//Clear the old spot;
-			temp[posMoves].column[i][temp[posMoves].colheight[i] - 1] = -1;
+			(states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1] = -1;
 			//Reduce the column height
-			temp[posMoves].colheight[i]--;
+			(states->states)[posMoves]->colheight[i]--;
 			//add to its score
-			temp[posMoves].status += 0;
+			//(states->states)[posMoves]->status += 10;
 			//Move to the next possible move
 			posMoves++;
-		}
-		spot = checkStack(state, card);
-		if (spot) {
-			//Move the card
-			temp[posMoves].stack[spot - 1] =
-					temp[posMoves].column[i][temp[posMoves].colheight[i] - 1];
-			//Clear the old spot;
-			temp[posMoves].column[i][temp[posMoves].colheight[i] - 1] = -1;
-			//Reduce the column height
-			temp[posMoves].colheight[i]--;
-			//add to its score
-			temp[posMoves].status += 10;
-			//Move to the next possible move
-			posMoves++;
-		}
-		for (j = 0; j < NUMCOLS; ++j) {
-			spot = checkCardToColumn(state, card, j);
+		} else {
+			spot = checkFreeCell(s, card);
 			if (spot) {
 				//Move the card
-				temp[posMoves].column[j][(int) temp[posMoves].colheight[j]] =
-						temp[posMoves].column[i][(int) temp[posMoves].colheight[i]
-								- 1];
+				(states->states)[posMoves]->freecell[spot - 1] = (states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1];
 				//Clear the old spot;
-				temp[posMoves].column[i][temp[posMoves].colheight[i] - 1] = -1;
-				//Reduce the column height for i
-				temp[posMoves].colheight[i]--;
-				//Increase column height for j
-				temp[posMoves].colheight[j]++;
+				(states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1] = -1;
+				//Reduce the column height
+				(states->states)[posMoves]->colheight[i]--;
+				//oder largest to smallest
+				sortFreeCell((states->states)[posMoves]->freecell);
 				//add to its score
-				temp[posMoves].status += 0;
+				//(states->states)[posMoves]->status += 0;
 				//Move to the next possible move
 				posMoves++;
 			}
+
+			for (j = 0; j < NUMCOLS; ++j) {
+				spot = checkCardToColumn(s, card, j);
+				if (spot) {
+					//Move the card
+					(states->states)[posMoves]->column[j][(int) (states->states)[posMoves]->colheight[j]] = (states->states)[posMoves]->column[i][(int) (states->states)[posMoves]->colheight[i] - 1];
+					//Clear the old spot;
+					(states->states)[posMoves]->column[i][(states->states)[posMoves]->colheight[i] - 1] = -1;
+					//Reduce the column height for i
+					(states->states)[posMoves]->colheight[i]--;
+					//Increase column height for j
+					(states->states)[posMoves]->colheight[j]++;
+					//add to its score
+					//(states->states)[posMoves]->status += 0;
+					//Move to the next possible move
+					posMoves++;
+				}
+			}
 		}
 	}
-
-	for (i = 0; i < posMoves; i++) {
-		if(endstate(&temp[i]))
-			dumpstate(&temp[i]);
-		//add to hash table
-		if (add_state(table, &temp[i]) == 2) {
-			//return 0;
-			temp[i].status = 0;
-		} else {
-			temp[i].status += genMoveStates(&temp[i], depth + 1);
-		}
-	}
-
-	max = temp[0].status;
-	for (i = 0; i < posMoves; i++) {
-		sum += temp[i].status;
-		if (temp[i].status > max) {
-			max = temp[i].status;
-			location = i;
-		}
-	}
-	if (max == 0) {
-		state->children = NULL;
-		free(temp);
-	} else {
-		state->children = malloc(sizeof(State));
-		memcpy(state->children, &temp[location], sizeof(State));
-		free(temp);
-	}
-
-	return sum;
+	return states;
 }
 
 int sameState(State *s1, State *s2) {
