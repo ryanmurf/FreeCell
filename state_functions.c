@@ -136,6 +136,10 @@ State* search() {
         if (endstate(s) == true) {
             //printPath(s);
             exit(0);
+<<<<<<< HEAD
+        }   
+    } while (hashCheckSingle(s, global_hash) == false);
+=======
         }
         free_table(path_hash);
         i++;
@@ -152,6 +156,7 @@ State* search() {
     	printf("Score: %u\n",stackingScoreRyan(k->states[i]));
     }
 
+>>>>>>> c496c1fc01359ee8df2cebc3917ab94c22e61f3a
     printf("No solution found, exiting...\n");
     exit(0);
 }
@@ -371,6 +376,20 @@ int possibleMoves(const State * state) {
 	return moves;
 }
 
+<<<<<<< HEAD
+States* genNextStates(State* state) {
+    int i, posMoves;
+    posMoves = possibleMoves(state);
+    States* nextStates = (States*) malloc(sizeof(States));
+    nextStates->states = (State**) calloc(sizeof(State*), posMoves);
+    for (i = 0; i < posMoves; i++) {
+        memcpy(&((nextStates->states)[i]), state, sizeof(State)); 
+    }
+}
+
+int genMoveStates(State * state, int depth) {
+	//Use this to keep track of sates in array
+=======
 void sortFreeCell(char *freeCells) {
 	int c, d;
 	char swap;
@@ -407,6 +426,7 @@ States* generateNextStates(State* s) {
 		memcpy((states->states)[i], s, sizeof(State));
 	}
 
+>>>>>>> c496c1fc01359ee8df2cebc3917ab94c22e61f3a
 	posMoves = 0;
 	//Start with FreeCells
 	for (i = 0; i < CELLS; i++) {
