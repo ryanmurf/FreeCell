@@ -12,6 +12,8 @@ extern Card deck[DECKSIZE];
 
 int MAX_DEPTH = 5;
 int ACE_DEC = 20;
+int STACK = 175;
+int COLUMN = 5;
 
 int simpleScoreRyan(State *s) {
 	int i=0, score=0;
@@ -36,7 +38,7 @@ int stackingScoreRyan(State *s) {
 	//Score for foundation cards
 	for (i = 0; i < CELLS; i++) {
 		if (s->stack[i] != -1) {
-			score += 175 * deck[(int) s->stack[i]].num;
+			score += STACK * deck[(int) s->stack[i]].num;
 		}
 	}
 
@@ -57,7 +59,7 @@ int stackingScoreRyan(State *s) {
 				nextCard = deck[(int) s->column[i][j + 1]];
 				if( (card.num-1 == nextCard.num) && (card.color != nextCard.color) ) {
 					foundStack = 1;
-					tempScore += (card.num+5) - j;
+					tempScore += (card.num+COLUMN) - j;
 				} else {
 					foundStack = 0;
 					if(tempScore > 0)
@@ -68,7 +70,7 @@ int stackingScoreRyan(State *s) {
 						tempScore -= ACE_DEC;
 				}
 				if (((j + 1) == (colHeight - 1)) && foundStack) {
-					tempScore += (nextCard.num + 5) - j;
+					tempScore += (nextCard.num + COLUMN) - j;
 					score += tempScore;
 				}
 			}
@@ -120,7 +122,6 @@ hash_table_t *global_hash;
 
 //The input to this function will need to be the config for a start state
 State* search() {
-	States *k;
 	int i=0;
     State *s;
     hash_table_t *path_hash;
@@ -185,6 +186,8 @@ State* search() {
     do {
 		path_hash = create_hash_table(GLOBAL_HASH_SIZE);
 		s = subtreeSearch(s, path_hash, 0);
+		if (stackingScoreRyan(s) > 3800)
+			MAX_DEPTH = 5;
 		if (stackingScoreRyan(s) > 4400)
 			MAX_DEPTH = 4;
 		if (stackingScoreRyan(s) > 5800)
@@ -203,6 +206,45 @@ State* search() {
 		}
 		free_table(path_hash);
 	} while (hashCheckSingle(s, global_hash) == false);
+
+    printf("No solution found, Trying 4...\n");
+    //3rd Try
+    free_table(global_hash);
+    MAX_DEPTH = 4;
+    ACE_DEC = 200;
+    STACK = 500;
+    COLUMN = 40;
+    global_hash = create_hash_table(PATH_HASH_SIZE);
+    s = &initial;
+
+    do {
+		path_hash = create_hash_table(GLOBAL_HASH_SIZE);
+		s = subtreeSearch(s, path_hash, 0);
+		if (stackingScoreRyan(s) > 950)
+			MAX_DEPTH = 7;
+		if (stackingScoreRyan(s) > 1950)
+			MAX_DEPTH = 6;
+		if (stackingScoreRyan(s) > 7000)
+			MAX_DEPTH = 5;
+		if (stackingScoreRyan(s) > 11000)
+			MAX_DEPTH = 4;
+		if (stackingScoreRyan(s) > 17000)
+			MAX_DEPTH = 3;
+		/*if (stackingScoreRyan(s) > 6150)
+			MAX_DEPTH = 2;
+		if (stackingScoreRyan(s) > 6500)
+			MAX_DEPTH = 2;*/
+		//printf("Score: %u\n", stackingScoreRyan(s));
+		//dumpstate(s);
+		if (endstate(s) == true) {
+			for(i=0; i<s->p_size; i++)
+				printf("%s\n", s->path[i]);
+			printf("Number of Moves: %u\n", i);
+			exit(0);
+		}
+		free_table(path_hash);
+	} while (hashCheckSingle(s, global_hash) == false);
+
 
     printf("No solution found, exit\n");
     exit(0);

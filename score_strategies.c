@@ -8,7 +8,7 @@ int simpleScoreMeng(State* s)
 	int score = 0;
 	int columnCount = DECKSIZE;
 	int colIdx, numIdx;
-	
+
 	for(stackIdx = 0; stackIdx < CELLS; stackIdx++)
 	{
 		if(s->stack[stackIdx] != -1)
@@ -17,7 +17,7 @@ int simpleScoreMeng(State* s)
 			columnCount -= deck[(int) s->stack[stackIdx]].num;
 		}
 	}
-	
+
 	for(freecellIdx = 0; freecellIdx < CELLS; freecellIdx++)
 	{
 		if(s->freecell[freecellIdx] != -1)
@@ -26,9 +26,9 @@ int simpleScoreMeng(State* s)
 			columnCount--;
 		}
 	}
-	
+
 	score += columnCount;
-	
+
 	for(colIdx = 0; colIdx < NUMCOLS; colIdx++)
 	{
 		int currentIdx = 0;

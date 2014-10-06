@@ -34,28 +34,11 @@ int main(int argc, char *argv[]) {
 	printf("\n");
 	printf("Created state 0\n");
 	printf("Size of State %u\n", (int) sizeof(State));
-
-	dumpstate(&initial);
-
-	//add_state(table, &initial);
-	//array = lookup_state(table, &initial);
 	printf("Possible Moves : %i\n", possibleMoves(&initial));
-
+	dumpstate(&initial);
+	printf("Try 1 of 4\n");
 	search();
 
-	/*k = generateNextStates(&initial);
-
-	for(i=0; i<k->size; i++) {
-		dumpstate(k->states[i]);
-		printf("%s\n",k->states[i]->path);
-	}
-
-	kk = generateNextStates(k->states[0]);
-	for(i=0; i<kk->size; i++) {
-			dumpstate(kk->states[i]);
-			printf("%s\n",kk->states[i]->path);
-		}
-*/
 	return 0;
 }
 
