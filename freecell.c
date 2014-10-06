@@ -27,14 +27,14 @@ Card deck[DECKSIZE]; /* card values in program are indices to deck[] */
 
 int main(int argc, char *argv[]) {
 	int i;
-	States *k;
+	States *k, *kk;
 	initdeck();
 	readinitconfig();
 
 	printf("\n");
 	printf("Created state 0\n");
 	printf("Size of State %u\n", (int) sizeof(State));
-	initial.score = 0;
+
 	dumpstate(&initial);
 
 	//add_state(table, &initial);
@@ -43,12 +43,19 @@ int main(int argc, char *argv[]) {
 
 	search();
 
-	//k = generateNextStates(&initial);
+	/*k = generateNextStates(&initial);
 
-	//for(i=0; i<k->size; i++) {
-	//	dumpstate(k->states[i]);
-	//}
+	for(i=0; i<k->size; i++) {
+		dumpstate(k->states[i]);
+		printf("%s\n",k->states[i]->path);
+	}
 
+	kk = generateNextStates(k->states[0]);
+	for(i=0; i<kk->size; i++) {
+			dumpstate(kk->states[i]);
+			printf("%s\n",kk->states[i]->path);
+		}
+*/
 	return 0;
 }
 
@@ -179,6 +186,9 @@ void readinitconfig(void) {
 	int i, j, k, num, suit, len, index;
 	char buf[BUFSIZE];
 
+	initial.p_size = 0;
+	initial.path = NULL;
+
 	/* first, clear initial state */
 	for (i = 0; i < NUMCOLS; i++) {
 		for (j = 0; j < COLSIZE; j++)
@@ -298,4 +308,74 @@ void dumpcard(char index) {
 	}
 	printf(" ");
 	printf(ANSI_COLOR_RESET);
+}
+
+void dumpcardPlain(char * src, char index, char *message) {
+	/* output a single card in the specified output format, add space
+	 * at the end */
+
+	if (index < 0 || index >= DECKSIZE) {
+		if (index == -1) {
+			printf(".. ");
+		}
+		//printf("%s Bad value in dumpcard %i\n", message, index);
+		src[0] = '0';
+		src[1] = '0';
+		//exit(-1);
+	}
+	switch (deck[(int) index].num) {
+	case 1:
+		src[0] = 'A';
+		break;
+	case 2:
+		src[0] = '2';
+		break;
+	case 3:
+		src[0] = '3';
+		break;
+	case 4:
+		src[0] = '4';
+		break;
+	case 5:
+		src[0] = '5';
+		break;
+	case 6:
+		src[0] = '6';
+		break;
+	case 7:
+		src[0] = '7';
+		break;
+	case 8:
+		src[0] = '8';
+		break;
+	case 9:
+		src[0] = '9';
+		break;
+	case 10:
+		src[0] = 'T';
+		break;
+	case 11:
+		src[0] = 'J';
+		break;
+	case 12:
+		src[0] = 'Q';
+		break;
+	case 13:
+		src[0] = 'K';
+		break;
+	}
+	switch (deck[(int) index].suit) {
+	case DIAMONDS:
+		src[1] = 'D';
+		break;
+	case HEARTS:
+		src[1] = 'H';
+		break;
+	case SPADES:
+		src[1] = 'S';
+		break;
+	case CLUBS:
+		src[1] = 'C';
+		break;
+	}
 }

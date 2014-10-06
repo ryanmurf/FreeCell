@@ -60,7 +60,6 @@ struct State /* the state of the game at each possible move */
 	char freecell[CELLS]; /* 4 freecells */
 	char stack[CELLS]; /* 4 stacks: stores top card only */
 	char colheight[NUMCOLS]; /* this and previous 2 used for hashing */
-	int score;
     const char** path;
     int p_size;
 };
@@ -106,6 +105,7 @@ int mapsuit(char c);
 int getindex(int num, int suit);
 void readinitconfig(void);
 void dumpcard(char index);
+void dumpcardPlain(char * src, char index, char *message);
 
 //
 hash_table_t *create_hash_table(int size);

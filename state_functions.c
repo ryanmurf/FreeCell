@@ -11,6 +11,7 @@ extern State initial;
 extern Card deck[DECKSIZE];
 
 int MAX_DEPTH = 5;
+int ACE_DEC = 20;
 
 int simpleScoreRyan(State *s) {
 	int i=0, score=0;
@@ -62,9 +63,9 @@ int stackingScoreRyan(State *s) {
 					if(tempScore > 0)
 						tempScore = 0;
 					if(card.num == 1)
-						tempScore -= 20;
+						tempScore -= ACE_DEC;
 					if(nextCard.num == 1)
-						tempScore -= 20;
+						tempScore -= ACE_DEC;
 				}
 				if (((j + 1) == (colHeight - 1)) && foundStack) {
 					tempScore += (nextCard.num + 5) - j;
@@ -105,6 +106,7 @@ State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
     }
     for(i=0; i<validStates->size; i++) {
     	if(validStates->states[i] != bestState)
+    		//free(validStates->states[i]->path);
     		free(validStates->states[i]);
     }
     free(validStates);
@@ -134,21 +136,36 @@ State* search() {
         printf("Score: %u\n",stackingScoreRyan(s));
         dumpstate(s);
         if (endstate(s) == true) {
-            //printPath(s);
+            printf("%s", s->path);
             exit(0);
-        }   
+        }
+        free_table(path_hash);
     } while (hashCheckSingle(s, global_hash) == false);
 
-    printf("Score: %u\n",stackingScoreRyan(s));
-    printf("Possible Moves : %i\n", possibleMoves(s));
-    printf("\n\n\n");
+    //2nd Try
+    free_table(global_hash);
+    MAX_DEPTH = 6;
+    ACE_DEC = 30;
+    global_hash = create_hash_table(PATH_HASH_SIZE);
+    s = &initial;
 
-    k = generateNextStates(s);
-
-    for(i=0; i<k->size; i++) {
-    	dumpstate(k->states[i]);
-    	printf("Score: %u\n",stackingScoreRyan(k->states[i]));
-    }
+    do {
+		path_hash = create_hash_table(GLOBAL_HASH_SIZE);
+		s = subtreeSearch(s, path_hash, 0);
+		if (stackingScoreRyan(s) > 5800)
+			MAX_DEPTH = 4;
+		if (stackingScoreRyan(s) > 6150)
+			MAX_DEPTH = 3;
+		if (stackingScoreRyan(s) > 6500)
+			MAX_DEPTH = 2;
+		printf("Score: %u\n", stackingScoreRyan(s));
+		dumpstate(s);
+		if (endstate(s) == true) {
+			printf("%s", s->path);
+			exit(0);
+		}
+		free_table(path_hash);
+	} while (hashCheckSingle(s, global_hash) == false);
 
     printf("No solution found, exiting...\n");
     exit(0);
@@ -180,8 +197,10 @@ States* hashCheck(States* states, hash_table_t* hashTable) {
     if(count == 0) {
     	validStates->states = NULL;
     	validStates->size = 0;
-    	for (i = 0; i < states->size; i++)
+    	for (i = 0; i < states->size; i++) {
+    		//free(states->states[i]->path);
     		free(states->states[i]);
+    	}
     	free(states);
     	return validStates;
     }
@@ -194,6 +213,7 @@ States* hashCheck(States* states, hash_table_t* hashTable) {
             (validStates->states)[j] = states->states[i];
             j++;
         } else {
+        	//free(states->states[i]->path);
         	free(states->states[i]);
         }
     }
