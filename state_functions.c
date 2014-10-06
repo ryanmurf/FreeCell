@@ -23,13 +23,65 @@ int simpleScoreRyan(State *s) {
 	return score;
 }
 
+int stackingScoreRyan(State *s) {
+	int i=0, j=0, score=0, colHeight;
+	int tempScore=0;
+	int foundStack = 0;
+	Card card, nextCard;
+	if(s==NULL) return 0;
+
+	//Score for foundation cards
+	for (i = 0; i < CELLS; i++) {
+		if (s->stack[i] != -1) {
+			score += 175 * deck[(int) s->stack[i]].num;
+		}
+	}
+
+	//for (i = 0; i < CELLS; i++) {
+	//	if(s->freecell[i] == -1)
+	//		score += 10;
+	//}
+
+	//
+	for(i=0; i<NUMCOLS; i++) {
+		foundStack = 0;
+		tempScore = 0;
+
+		colHeight = (int) s->colheight[i];
+		if(colHeight == 0) {
+			continue;
+		} else if(colHeight == 1) {
+			card = deck[(int) s->column[i][0]];
+			score += (card.num+5) - j;
+		} else {
+			for (j = 0; j < (colHeight - 1); j++) {
+				card = deck[(int) s->column[i][j]];
+				nextCard = deck[(int) s->column[i][j + 1]];
+				if( (card.num-1 == nextCard.num) && (card.color != nextCard.color) ) {
+					foundStack = 1;
+					tempScore += (card.num+5) - j;
+				} else {
+					foundStack = 0;
+					tempScore = 0;
+				}
+				if (((j + 1) == (colHeight - 1)) && foundStack) {
+					tempScore += (nextCard.num + 5) - j;
+					score += tempScore;
+				}
+			}
+		}
+	}
+
+	return score;
+}
+
 State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
 	States *states, *validStates;
 	State *bestState, *temp;
 	int i=0, bestScore=0;
 
 	int (*simpleScore)(State *);
-	simpleScore = &simpleScoreRyan;
+	simpleScore = &stackingScoreRyan;
 
     if (depth == MAX_DEPTH) return s;
     states = generateNextStates(s);
@@ -56,17 +108,21 @@ State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
     return bestState;
 }
 
+hash_table_t *global_hash;
+
 //The input to this function will need to be the config for a start state
 State* search() {
+	States *k;
 	int i=0;
     State *s;
     hash_table_t *path_hash;
-	hash_table_t *global_hash = create_hash_table(PATH_HASH_SIZE);
+	global_hash = create_hash_table(PATH_HASH_SIZE);
     //Build start state -- using config
     s = &initial;
     do {
         path_hash = create_hash_table(GLOBAL_HASH_SIZE);
         s = subtreeSearch(s, path_hash, 0);
+        printf("Score: %u\n",stackingScoreRyan(s));
         dumpstate(s);
         if (endstate(s) == true) {
             //printPath(s);
@@ -74,7 +130,21 @@ State* search() {
         }
         free_table(path_hash);
         i++;
-    } while (hashCheckSingle(s, global_hash) == false && i<3);
+    } while (hashCheckSingle(s, global_hash) == false);
+
+    printf("Score: %u\n",stackingScoreRyan(s));
+    printf("Possible Moves : %i\n", possibleMoves(s));
+    printf("\n\n\n");
+
+
+
+    k = generateNextStates(s);
+
+    for(i=0; i<k->size; i++) {
+    	dumpstate(k->states[i]);
+    	printf("Score: %u\n",stackingScoreRyan(k->states[i]));
+    }
+
     printf("No solution found, exiting...\n");
     exit(0);
 }
@@ -97,7 +167,7 @@ bool hashCheckSingle(State* s, hash_table_t* hashTable) {
 States* hashCheck(States* states, hash_table_t* hashTable) {
     int count = 0, i;
     for (i = 0; i < states->size; i++ ) { 
-        if (lookup_state(hashTable, states->states[i]) == NULL) {
+        if (lookup_state(hashTable, states->states[i]) == NULL && lookup_state(global_hash, states->states[i]) == NULL) {
             count++;
         }
     }
@@ -184,8 +254,9 @@ int endstate(State *s) {
 		if (s->freecell[i] != -1)
 			return 0;
 	}
-	if ((s->stack[0] != 12) || (s->stack[1] != 25) || (s->stack[2] != 38)
-			|| (s->stack[3] != 51)) {
+	//
+	if ((s->stack[0] != 12) || (s->stack[1] != 51) || (s->stack[2] != 25)
+			|| (s->stack[3] != 38)) {
 		printf("Impossible condition in endstate\n");
 		exit(-1);
 	}
@@ -335,6 +406,8 @@ States* generateNextStates(State* s) {
 				(states->states)[posMoves]->stack[spot - 1] = (states->states)[posMoves]->freecell[i];
 				//Clear the old spot;
 				(states->states)[posMoves]->freecell[i] = -1;
+				//oder largest to smallest
+				sortFreeCell((states->states)[posMoves]->freecell);
 				//add to its score
 				//(states->states)[posMoves]->status += 10;
 				//Move to the next possible move
@@ -350,6 +423,8 @@ States* generateNextStates(State* s) {
 						(states->states)[posMoves]->freecell[i] = -1;
 						//increase counter
 						(states->states)[posMoves]->colheight[j]++;
+						//oder largest to smallest
+						sortFreeCell((states->states)[posMoves]->freecell);
 						//add to its score
 						//(states->states)[posMoves]->status += 0;
 						//Move to the next possible move
@@ -364,6 +439,8 @@ States* generateNextStates(State* s) {
 	//If card can move to foundation, do not generate any of it's other moves
 	//
 	for (i = 0; i < NUMCOLS; ++i) {
+		if(s->colheight[i] == 0)
+			continue;
 		card = s->column[i][s->colheight[i] - 1];
 		spot = checkStack(s, card);
 		if (spot) {

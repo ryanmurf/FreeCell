@@ -32,7 +32,7 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-#define MAX_DEPTH 2
+#define MAX_DEPTH 4
 //Hash table size is 2^(size)
 #define GLOBAL_HASH_SIZE 15
 #define PATH_HASH_SIZE 15
@@ -46,7 +46,7 @@ enum colors {
 
 typedef struct cardrec /* one of these per card */
 {
-	int num; /* values 1-14, for A through K */
+	int num; /* values 1-13, for A through K */
 	int suit; /* one of enum suits */
 	int color; /* one of enum colors */
 	int played; /* flag: test that all cards are present */
