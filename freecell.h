@@ -32,7 +32,7 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-#define MAX_DEPTH 4
+//#define MAX_DEPTH 5
 //Hash table size is 2^(size)
 #define GLOBAL_HASH_SIZE 15
 #define PATH_HASH_SIZE 15

@@ -10,6 +10,8 @@
 extern State initial;
 extern Card deck[DECKSIZE];
 
+int MAX_DEPTH = 5;
+
 int simpleScoreRyan(State *s) {
 	int i=0, score=0;
 	if(s == NULL) return 0;
@@ -37,11 +39,6 @@ int stackingScoreRyan(State *s) {
 		}
 	}
 
-	//for (i = 0; i < CELLS; i++) {
-	//	if(s->freecell[i] == -1)
-	//		score += 10;
-	//}
-
 	//
 	for(i=0; i<NUMCOLS; i++) {
 		foundStack = 0;
@@ -62,7 +59,12 @@ int stackingScoreRyan(State *s) {
 					tempScore += (card.num+5) - j;
 				} else {
 					foundStack = 0;
-					tempScore = 0;
+					if(tempScore > 0)
+						tempScore = 0;
+					if(card.num == 1)
+						tempScore -= 20;
+					if(nextCard.num == 1)
+						tempScore -= 20;
 				}
 				if (((j + 1) == (colHeight - 1)) && foundStack) {
 					tempScore += (nextCard.num + 5) - j;
@@ -93,6 +95,7 @@ State* subtreeSearch(State* s, hash_table_t* hashTable, int depth) {
     bestScore = scoreState(s, simpleScore);
     for (i = 0; i < validStates->size; i++) {
         temp = subtreeSearch(validStates->states[i], hashTable, depth+1);
+
         int score = scoreState(temp, simpleScore);
         //printf("%u\n",score);
         if (score > bestScore) {
@@ -122,6 +125,12 @@ State* search() {
     do {
         path_hash = create_hash_table(GLOBAL_HASH_SIZE);
         s = subtreeSearch(s, path_hash, 0);
+        if(stackingScoreRyan(s) > 5800)
+        	MAX_DEPTH = 4;
+        if(stackingScoreRyan(s) > 6150)
+            MAX_DEPTH = 3;
+        if(stackingScoreRyan(s) > 6500)
+        	MAX_DEPTH = 2;
         printf("Score: %u\n",stackingScoreRyan(s));
         dumpstate(s);
         if (endstate(s) == true) {
@@ -135,8 +144,6 @@ State* search() {
     printf("Score: %u\n",stackingScoreRyan(s));
     printf("Possible Moves : %i\n", possibleMoves(s));
     printf("\n\n\n");
-
-
 
     k = generateNextStates(s);
 
@@ -255,8 +262,8 @@ int endstate(State *s) {
 			return 0;
 	}
 	//
-	if ((s->stack[0] != 12) || (s->stack[1] != 51) || (s->stack[2] != 25)
-			|| (s->stack[3] != 38)) {
+	if ((s->stack[0] != 12) || (s->stack[1] != 25) || (s->stack[2] != 38)
+			|| (s->stack[3] != 51)) {
 		printf("Impossible condition in endstate\n");
 		exit(-1);
 	}
@@ -265,7 +272,7 @@ int endstate(State *s) {
 
 //Return 1-4 if card can move to stack. If not -1
 int checkStack(const State *state, int card) {
-	int i;
+	/*int i;
 	State s = *state;
 	for (i = 0; i < CELLS; i++) {
 		if (s.stack[i] == -1 && deck[card].num == 1) //if empty and have ace
@@ -279,7 +286,12 @@ int checkStack(const State *state, int card) {
 				}
 			}
 		}
-	}
+	}*/
+	State s = *state;
+	if (s.stack[deck[card].suit] == -1 && deck[card].num == 1)
+		return deck[card].suit + 1;
+	if (deck[card].num == (deck[(int) s.stack[deck[card].suit]].num + 1))
+		return deck[card].suit + 1;
 	return 0;
 }
 
