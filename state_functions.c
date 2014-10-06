@@ -43,9 +43,8 @@ State* search() {
         if (endState(s) == true) {
             printPath(s);
             exit(0);
-        }
-        
-    while (hashCheckSingle(s, global_hash) == false);
+        }   
+    } while (hashCheckSingle(s, global_hash) == false);
     printf("No solution found, exiting...\n");
     exit(0);
 }
